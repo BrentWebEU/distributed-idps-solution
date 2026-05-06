@@ -1,0 +1,30 @@
+{
+  "name": "idps",
+  "version": "1.0.0",
+  "description": "Distributed security monitoring for educational networks. A Raspberry Pi captures all network traffic inline, streams it to a VPS for analysis, and enforces block rules locally — without ever holding up traffic.",
+  "main": "simple-gateway.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BrentWebEU/idps-solution.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/BrentWebEU/idps-solution/issues"
+  },
+  "homepage": "https://github.com/BrentWebEU/idps-solution#readme",
+  "dependencies": {
+    "axios": "^1.15.0",
+    "express": "^5.2.1",
+    "ws": "^8.20.0"
+  }
+}
