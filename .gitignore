@@ -103,5 +103,4 @@ mongo-data/
 v1-Eindwerk/
 
 # Internal docs (ignored working notes)
-docs/technical-questions.md
-docs/TECHNICAL_ANSWERS.md
+.claude/
