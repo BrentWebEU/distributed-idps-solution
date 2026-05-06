@@ -1,8 +1,3 @@
-//! IDPS API Gateway
-//!
-//! Central API gateway and management interface for cloud services.
-//! Provides REST API, authentication, and service orchestration.
-
 use axum::{
     extract::{Path, Query, State},
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
@@ -431,10 +426,8 @@ async fn read_machine_metrics() -> MachineMetrics {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize logging
     tracing_subscriber::fmt::init();
 
-    // Connect to MongoDB
     let mongo_uri =
         std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://mongo:27017/idps".to_string());
 
@@ -444,7 +437,6 @@ async fn main() -> anyhow::Result<()> {
 
     let mongo_client = mongodb::Client::with_options(client_options)?;
 
-    // Initialize HTTP clients for microservices
     let raspi_client: reqwest::Client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()?;
@@ -456,7 +448,6 @@ async fn main() -> anyhow::Result<()> {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/app/logs/eve.json"));
 
-    // Load detection settings from MongoDB (or use defaults)
     let initial_settings = load_detection_settings_from_db(&mongo_client).await;
     let detection_settings = Arc::new(RwLock::new(initial_settings));
     let brute_force_tracker: Arc<DashMap<(String, String), Vec<DateTime<Utc>>>> =
@@ -499,13 +490,11 @@ async fn main() -> anyhow::Result<()> {
         raspi_connection_cache,
     });
 
-    // Start the brute force detection background loop
     let detection_state = state.clone();
     tokio::spawn(async move {
         run_detection_loop(detection_state).await;
     });
 
-    // Background task: poll raspi /connection every 30 s and update cache
     let conn_state = state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(30));
@@ -549,7 +538,6 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
-    // Background task: expire blocked IPs every 60 s and broadcast unblock commands
     let expiry_state = state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(60));
@@ -564,7 +552,6 @@ async fn main() -> anyhow::Result<()> {
                 "expires_at_dt": { "$lt": now_bson }
             };
 
-            // Collect IPs to unblock before updating
             let expired_ips: Vec<String> = match col.find(expired_filter.clone()).await {
                 Ok(mut cursor) => {
                     let mut ips = Vec::new();
@@ -614,7 +601,6 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/events", post(submit_event))
         .route("/api/v1/events", get(get_events))
         .route("/api/v1/analyze", post(analyze_event))
-        // Angular Admin API endpoints
         .route("/api/status", get(get_status))
         .route("/api/events", get(get_events_paginated))
         .route("/api/alerts/statistics", get(get_alert_statistics))
@@ -649,7 +635,7 @@ async fn main() -> anyhow::Result<()> {
         // Detection events endpoints
         .route("/api/detection/events", get(get_detection_events))
         .route("/api/detection/active", get(get_active_detection_events))
-        // Telemetry endpoints (edge device hardware metrics)
+        // Telemetry
         .route("/api/telemetry", post(ingest_telemetry))
         .route("/api/telemetry/latest", get(get_latest_telemetry))
         .route("/api/telemetry/alert", post(ingest_telemetry_alert))
@@ -658,7 +644,6 @@ async fn main() -> anyhow::Result<()> {
         // Traffic ingest endpoints (from raspi-collector)
         .route("/api/traffic", post(ingest_traffic_event))
         .route("/api/traffic/batch", post(ingest_traffic_batch))
-        // Prometheus metrics scrape endpoint
         .route("/metrics", get(prometheus_metrics))
         // Config endpoint — no auth, used by dashboard to discover auth requirements
         .route("/api/config", get(get_config))

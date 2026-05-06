@@ -1,52 +1,54 @@
-.PHONY: help build build-edge build-cloud build-shared test test-edge test-cloud lint format clean dev-setup dev-watch dev-test-watch security-audit security-check docs docs-serve
+.PHONY: help build build-edge build-cloud build-shared test lint format clean dev-setup security-audit docs
 
 help:
 	@echo "Available targets:"
-	@echo "  build          - Build all services"
-	@echo "  build-edge     - Build edge services"
-	@echo "  build-cloud    - Build cloud services"
+	@echo "  build          - Build all services (release)"
+	@echo "  build-edge     - Build Pi-side services"
+	@echo "  build-cloud    - Build VPS-side services"
 	@echo "  build-shared   - Build shared libraries"
 	@echo "  test           - Run all tests"
-	@echo "  test-edge      - Run edge service tests"
-	@echo "  test-cloud     - Run cloud service tests"
 	@echo "  lint           - Run clippy + fmt check"
 	@echo "  format         - Format all code"
 	@echo "  clean          - Clean build artifacts"
-	@echo "  dev-setup      - Install dev tools (cargo-watch, cargo-audit, cargo-deny)"
-	@echo "  dev-watch      - Watch and rebuild edge-packet-processor"
-	@echo "  dev-test-watch - Watch and run tests"
+	@echo "  dev-setup      - Install cargo-watch, cargo-audit, cargo-deny"
 	@echo "  security-audit - Run cargo audit"
-	@echo "  security-check - Run cargo deny + cargo audit"
-	@echo "  docs           - Generate and open docs"
-	@echo "  docs-serve     - Serve docs on :8000"
+	@echo "  docs           - Generate and open rustdoc"
 
 build:
-	cargo build --release
+	cargo build --workspace --release
 
 build-edge:
-	cargo build --release -p edge-packet-processor -p edge-network-filter -p edge-rule-engine -p edge-raspi-collector
+	cargo build --release \
+	  -p idps-packet-processor \
+	  -p idps-network-filter \
+	  -p idps-rule-engine \
+	  -p raspi-collector \
+	  -p idps-telemetry
 
 build-cloud:
-	cargo build --release -p cloud-packet-analyzer -p cloud-threat-intel -p cloud-rule-generator -p cloud-api-gateway
+	cargo build --release \
+	  -p idps-api-gateway \
+	  -p idps-packet-analyzer \
+	  -p idps-threat-intel \
+	  -p idps-rule-generator \
+	  -p idps-log-processor
 
 build-shared:
-	cargo build --release -p shared-types -p shared-protocols -p shared-utils -p shared-config
+	cargo build --release \
+	  -p idps-types \
+	  -p idps-protocols \
+	  -p idps-utils \
+	  -p idps-config
 
 test:
-	cargo test --all-features
-
-test-edge:
-	cargo test -p edge-packet-processor -p edge-network-filter -p edge-rule-engine -p edge-telemetry
-
-test-cloud:
-	cargo test -p idps-packet-analyzer -p idps-threat-intel -p idps-rule-generator -p idps-api-gateway -p idps-log-processor
+	cargo test --workspace
 
 lint:
-	cargo clippy --all-features -- -D warnings
+	cargo clippy --workspace -- -D warnings
 	cargo fmt --check
 
 format:
-	cargo fmt
+	cargo fmt --all
 
 clean:
 	cargo clean
@@ -54,22 +56,8 @@ clean:
 dev-setup:
 	cargo install cargo-watch cargo-audit cargo-deny
 
-dev-watch:
-	cargo watch -x 'run --bin edge-packet-processor'
-
-dev-test-watch:
-	cargo watch -x test
-
 security-audit:
 	cargo audit
 
-security-check:
-	cargo deny check
-	cargo audit
-
 docs:
-	cargo doc --open
-
-docs-serve:
-	cargo doc --no-deps --document-private-items
-	python3 -m http.server 8000 --directory target/doc
+	cargo doc --workspace --open

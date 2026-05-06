@@ -1,8 +1,3 @@
-//! Common utilities for IDPS services
-//!
-//! This module provides shared utility functions and helpers
-//! used across multiple IDPS services.
-
 use std::net::IpAddr;
 use std::time::Duration;
 use std::io::Write;
@@ -16,42 +11,24 @@ use std::future::Future;
 use tokio::time::sleep;
 use rand::Rng;
 
-/// Network utilities for IP and CIDR operations
 pub mod network_utils {
     use super::*;
 
-    /// Check if an IP address is within a CIDR range
-    /// 
-    /// # Arguments
-    /// * `ip` - IP address string to check
-    /// * `cidr` - CIDR notation string (e.g., "192.168.1.0/24")
-    /// 
-    /// # Returns
-    /// * `true` if IP is within the CIDR range, `false` otherwise
-    /// 
-    /// # Examples
-    /// ```
-    /// assert!(is_in_cidr("192.168.1.50", "192.168.1.0/24"));
-    /// assert!(!is_in_cidr("10.0.0.1", "192.168.1.0/24"));
-    /// ```
     pub fn is_in_cidr(ip: &str, cidr: &str) -> Result<bool> {
         let ip_addr: IpAddr = ip.parse()
             .with_context(|| format!("Invalid IP address: {}", ip))?;
         let network: IpNetwork = cidr.parse()
             .with_context(|| format!("Invalid CIDR notation: {}", cidr))?;
-        
         Ok(network.contains(ip_addr))
     }
 
-    /// Check if an IP address is in any of the RFC 1918 private ranges
     pub fn is_private_ip(ip: &str) -> Result<bool> {
         let private_ranges = [
             "10.0.0.0/8",
-            "172.16.0.0/12", 
+            "172.16.0.0/12",
             "192.168.0.0/16",
-            "127.0.0.0/8", // localhost
+            "127.0.0.0/8",
         ];
-        
         for range in &private_ranges {
             if is_in_cidr(ip, range)? {
                 return Ok(true);
@@ -60,26 +37,14 @@ pub mod network_utils {
         Ok(false)
     }
 
-    /// Validate IP address format
     pub fn is_valid_ip(ip: &str) -> bool {
         ip.parse::<IpAddr>().is_ok()
     }
 }
 
-/// Retry utilities with exponential backoff
 pub mod retry_utils {
     use super::*;
 
-    /// Retry a function with exponential backoff and jitter
-    /// 
-    /// # Arguments
-    /// * `operation` - Async function to retry
-    /// * `max_attempts` - Maximum number of retry attempts
-    /// * `base_delay` - Base delay between retries
-    /// * `max_delay` - Maximum delay between retries
-    /// 
-    /// # Returns
-    /// * Result of the operation or last error
     pub async fn retry_with_backoff<F, T, E>(
         mut operation: F,
         max_attempts: u8,
@@ -92,10 +57,9 @@ pub mod retry_utils {
     {
         let mut attempt = 0;
         let mut delay = base_delay;
-        
+
         loop {
             attempt += 1;
-            
             match operation().await {
                 Ok(result) => return Ok(result),
                 Err(e) => {
@@ -103,22 +67,17 @@ pub mod retry_utils {
                         log::error!("Operation failed after {} attempts: {}", attempt, e);
                         return Err(e);
                     }
-                    
-                    // Add jitter to prevent thundering herd
+                    // Jitter prevents thundering herd on reconnect storms.
                     let jitter = rand::thread_rng().gen_range(0..=delay.as_millis() as u64);
                     let actual_delay = Duration::from_millis(jitter);
-                    
                     log::warn!("Attempt {} failed: {}, retrying in {:?}", attempt, e, actual_delay);
                     sleep(actual_delay).await;
-                    
-                    // Exponential backoff with cap
                     delay = std::cmp::min(delay * 2, max_delay);
                 }
             }
         }
     }
 
-    /// Create a retry operation from a closure
     pub fn retry_operation<F, T, E>(f: F) -> impl FnMut() -> Pin<Box<dyn Future<Output = Result<T, E>> + Send>>
     where
         F: Fn() -> Pin<Box<dyn Future<Output = Result<T, E>> + Send>> + 'static,
@@ -128,18 +87,9 @@ pub mod retry_utils {
     }
 }
 
-/// Logging utilities for consistent log formatting
 pub mod logging_utils {
     use super::*;
 
-    /// Initialize structured logging for a service
-    /// 
-    /// # Arguments
-    /// * `service_name` - Name of the service for log identification
-    /// * `level` - Minimum log level to output
-    /// 
-    /// # Returns
-    /// * Result indicating success or failure
     pub fn init_logging(service_name: &str, level: LevelFilter) -> Result<()> {
         let service_name_clone = service_name.to_string();
         let service_name = service_name_clone.clone();
@@ -157,12 +107,10 @@ pub mod logging_utils {
                 )
             })
             .init();
-        
         log::info!("Logging initialized for service: {}", service_name_clone);
         Ok(())
     }
 
-    /// Initialize logging with JSON formatting for production
     pub fn init_json_logging(service_name: &str, level: LevelFilter) -> Result<()> {
         let service_name_clone = service_name.to_string();
         let service_name = service_name_clone.clone();
@@ -180,40 +128,28 @@ pub mod logging_utils {
                 )
             })
             .init();
-        
         log::info!("JSON logging initialized for service: {}", service_name_clone);
         Ok(())
     }
 }
 
-/// Time utilities for common time operations
 pub mod time_utils {
-    use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
+    use super::Duration;
 
-    /// Get current Unix timestamp in seconds
     pub fn unix_timestamp() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs()
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
     }
 
-    /// Get current Unix timestamp in milliseconds
     pub fn unix_timestamp_ms() -> u128 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis()
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()
     }
 
-    /// Format duration in human-readable format
     pub fn format_duration(duration: Duration) -> String {
         let total_seconds = duration.as_secs();
         let hours = total_seconds / 3600;
         let minutes = (total_seconds % 3600) / 60;
         let seconds = total_seconds % 60;
-        
         if hours > 0 {
             format!("{}h {}m {}s", hours, minutes, seconds)
         } else if minutes > 0 {
@@ -224,7 +160,6 @@ pub mod time_utils {
     }
 }
 
-// Re-export commonly used functions
 pub use network_utils::{is_in_cidr, is_private_ip, is_valid_ip};
 pub use retry_utils::{retry_with_backoff, retry_operation};
 pub use logging_utils::{init_logging, init_json_logging};
@@ -270,11 +205,7 @@ mod tests {
                 let attempts = attempts.clone();
                 Box::pin(async move {
                     let attempt_num = attempts.fetch_add(1, Ordering::SeqCst) + 1;
-                    if attempt_num < 3 {
-                        Err("Simulated failure")
-                    } else {
-                        Ok("success")
-                    }
+                    if attempt_num < 3 { Err("Simulated failure") } else { Ok("success") }
                 })
             }
         };
@@ -287,11 +218,9 @@ mod tests {
     #[test]
     fn test_time_utils() {
         let ts = unix_timestamp();
-        assert!(ts > 1600000000); // Sometime in 2020+
-        
+        assert!(ts > 1600000000);
         let ts_ms = unix_timestamp_ms();
         assert!(ts_ms > 1600000000000);
-        
         let duration = Duration::from_secs(3661);
         assert_eq!(format_duration(duration), "1h 1m 1s");
     }

@@ -1,16 +1,7 @@
-//! Communication protocols for IDPS services
-//!
-//! Standardized WebSocket message types used between VPS ↔ Raspi and
-//! VPS ↔ Dashboard connections.
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-// ─── Message envelope ────────────────────────────────────────────────────────
-
-/// Top-level WebSocket message envelope.
-/// The `payload` field contains one of the typed variants below.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WsMessage {
     pub id: String,
@@ -29,65 +20,45 @@ impl WsMessage {
     }
 }
 
-// ─── Payload variants ─────────────────────────────────────────────────────────
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum WsPayload {
-    /// VPS → Raspi: block a specific IP immediately
     BlockCommand(BlockCommand),
-    /// VPS → Raspi: remove an existing block
     UnblockCommand(UnblockCommand),
-    /// VPS → Raspi: install/update a Suricata or iptables rule
     RuleUpdate(RuleUpdate),
-    /// Raspi → VPS: acknowledgement of a command
     CommandAck(CommandAck),
-    /// VPS → Dashboard: a new security alert
     Alert(AlertNotification),
-    /// VPS → Dashboard: system metrics snapshot
     Metrics(MetricsSnapshot),
-    /// Either direction: keep-alive ping
     Ping(Heartbeat),
-    /// Either direction: keep-alive pong
     Pong(Heartbeat),
 }
 
-// ─── VPS → Raspi messages ─────────────────────────────────────────────────────
-
-/// Block a single IP on the Raspi (iptables DROP + optional Suricata rule).
+/// VPS → Raspi: block a single IP (iptables DROP + optional Suricata rule).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockCommand {
-    /// IP address to block
     pub ip: String,
-    /// Human-readable reason (logged on Raspi)
     pub reason: String,
-    /// How many seconds to keep the block; 0 = permanent until explicit unblock
+    /// 0 = permanent until explicit unblock.
     pub duration_secs: u64,
-    /// Also generate a Suricata rule for this block
     pub apply_suricata_rule: bool,
-    /// Severity 1-10 used to decide urgency
     pub severity: u8,
-    /// Originating detection event ID (for correlation)
     pub detection_event_id: Option<String>,
 }
 
-/// Remove an existing IP block on the Raspi.
+/// VPS → Raspi: remove an existing IP block.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnblockCommand {
     pub ip: String,
     pub reason: String,
-    /// Admin user who triggered the unblock (for audit log)
     pub unblocked_by: Option<String>,
 }
 
-/// Install or update a Suricata rule on the Raspi.
+/// VPS → Raspi: install or update a rule.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleUpdate {
     pub rule_id: String,
     pub action: RuleAction,
-    /// Suricata rule text (used when action = Add or Update)
     pub suricata_rule: Option<String>,
-    /// iptables rule (used when action = Add or Update)
     pub iptables_rule: Option<String>,
     pub description: String,
 }
@@ -100,22 +71,16 @@ pub enum RuleAction {
     Remove,
 }
 
-// ─── Raspi → VPS messages ─────────────────────────────────────────────────────
-
-/// Acknowledgement that a command was received and applied (or failed).
+/// Raspi → VPS: acknowledgement that a command was applied (or failed).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandAck {
-    /// ID of the WsMessage being acknowledged
     pub command_id: String,
     pub success: bool,
     pub error: Option<String>,
-    /// Raspi device identifier
     pub raspi_id: String,
 }
 
-// ─── VPS → Dashboard messages ─────────────────────────────────────────────────
-
-/// Real-time security alert broadcast to admin dashboard.
+/// VPS → Dashboard: real-time security alert.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertNotification {
     pub event_id: String,
@@ -145,15 +110,15 @@ impl AlertSeverity {
     pub fn from_threat_level(level: u8) -> Self {
         match level {
             9..=10 => AlertSeverity::Critical,
-            7..=8 => AlertSeverity::High,
-            5..=6 => AlertSeverity::Medium,
-            3..=4 => AlertSeverity::Low,
-            _ => AlertSeverity::Info,
+            7..=8  => AlertSeverity::High,
+            5..=6  => AlertSeverity::Medium,
+            3..=4  => AlertSeverity::Low,
+            _      => AlertSeverity::Info,
         }
     }
 }
 
-/// System metrics snapshot sent to dashboard every few seconds.
+/// VPS → Dashboard: periodic system metrics snapshot.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetricsSnapshot {
     pub events_per_second: f64,
@@ -164,8 +129,6 @@ pub struct MetricsSnapshot {
     pub raspi_connected: bool,
     pub vps_processing_rate: f64,
 }
-
-// ─── Heartbeat ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Heartbeat {

@@ -31,13 +31,14 @@ A quick tour of the repo after cleanup. Use this as the source of truth for wher
 │   ├── OPERATIONS.md               # Day-2 ops, endpoints, troubleshooting
 │   ├── DEVELOPMENT.md              # Contributor workflow
 │   ├── PI_BRIDGE_SETUP.md          # Bridge + WireGuard pairing guide
-│   ├── BACKLOG.md / TODO.md        # Open work items
-│   └── archive/                    # Legacy thesis material (v1-Eindwerk)
-├── ops/                            # Advanced ops (keep if you need Prom/Grafana extras)
+│   └── BACKLOG.md / TODO.md        # Open work items
+├── ops/                            # Advanced ops (Prom/Grafana configs — no compose yet)
 │   ├── config/                     # Alt configs (logrotate, suricata, nginx)
-│   ├── monitoring/                 # Prometheus/Grafana dashboards
-│   └── scripts/                    # Older deploy/maintenance scripts (superseded by manager)
+│   ├── monitoring/                 # Prometheus scrape config + Grafana dashboards/datasources
+│   └── scripts/                    # Older deploy/maintenance scripts (reference docker-compose.yml — stale, use manager)
 ├── rules/                          # Custom Suricata rules (bind-mounted)
+├── generate-env.sh                 # Generates .env with random secrets from .env.example
+├── setup-raspi.sh                  # Legacy setup script (root) — superseded by idps-manager.sh
 └── .env.example                    # Canonical environment template
 ```
 
@@ -46,11 +47,10 @@ A quick tour of the repo after cleanup. Use this as the source of truth for wher
 - `scripts/setup/setup-bridge-unified.sh` — one-time Pi bridge creation (eth0↔eth1).
 - `scripts/setup/setup-wireguard-{pi,vps}.sh` — helper for WireGuard peer config.
 
-## Scripts we removed
-Legacy one-off scripts at repo root (`setup-raspi.sh`, `validate-raspi-pi.sh`, `test-data-flow.sh`) were deleted to avoid confusion. Use `idps-manager.sh` instead.
-
-## Archived assets
-- `docs/archive/v1-Eindwerk` — original thesis materials and screenshots. Not required for deployment.
+## Scripts still at repo root (legacy)
+- `setup-raspi.sh` — legacy all-in-one setup script; superseded by `scripts/idps-manager.sh`. Keep for reference or delete if no longer needed.
+- `generate-env.sh` — generates a `.env` file from `.env.example` with random secrets; still useful.
+- `validate-raspi-pi.sh` and `test-data-flow.sh` were deleted. Use `idps-manager.sh` for equivalent operations.
 
 ## When in doubt
 1. Check [SETUP.md](SETUP.md) for deployment.

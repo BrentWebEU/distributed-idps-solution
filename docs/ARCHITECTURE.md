@@ -99,12 +99,12 @@ Setup/teardown: `scripts/setup/setup-bridge-unified.sh [setup|revert|status|trou
 | network-filter | `idps-network-filter-pi` | host | iptables DROP enforcement | Running |
 | suricata | `idps-suricata-pi` | host | IDS engine, monitors br0, writes eve.json | Running |
 | raspi-collector | `idps-raspi-collector-pi` | host | Tails eve.json → forwards events to VPS; receives block/rule commands from VPS | Running |
-| ids-pi | `idps-ids-pi` | 8081 | Python edge security scanner (safe hours only) | Running |
-| telemetry | `idps-telemetry-pi` | 8096 | Hardware metrics (CPU/mem/disk/temp) — local only, not streaming to VPS | Running |
+| packet-processor | `idps-packet-processor-pi` | host | pcap capture + fail-open WebSocket streaming to VPS `/ws/packets` | Running |
+| rule-engine | `idps-rule-engine-pi` | host (8094) | Receives Suricata rules from VPS, writes to rules file, reloads Suricata | Running |
+| ids-pi | `idps-ids-pi` | host (8085) | Python edge security scanner (safe hours only) | Running — health endpoint only |
+| telemetry | `idps-telemetry-pi` | 8096 | Hardware metrics (CPU/mem/disk/temp) — streams to VPS `/api/telemetry` | Running |
 | node-exporter | `idps-node-exporter-pi` | 9100 | Prometheus node metrics | Running |
 | pi-dashboard | `idps-pi-dashboard` | 80 | Nginx serving Angular build | Running |
-
-> `packet-processor` and `rule-engine` are code-complete in `src/services/edge/` but not yet added to `docker-compose.raspi.yml`. The raspi-collector currently handles VPS event forwarding and bridges block/rule commands to network-filter and rule-engine via their local HTTP APIs.
 
 ---
 
@@ -120,9 +120,9 @@ All cloud services run on the `idps-net` internal Docker network. Services that 
 | mongodb | `idps-mongodb-vps` | internal only | Central event, rule, and alert storage (v8.0) | Running |
 | redis | `idps-redis-vps` | internal only | Cache | Running |
 | elasticsearch | `idps-elasticsearch-vps` | internal only | Log search index | Running |
-| prometheus | `idps-prometheus-vps` | internal only | Metrics collection | Running |
-| grafana | `idps-grafana-vps` | `grafana.idps.brentweb.eu` | Monitoring dashboards | Running |
 | vps-dashboard | `idps-vps-dashboard` | `idps.brentweb.eu` | Nginx serving Angular build | Running |
+
+> Prometheus and Grafana are **not** managed by `docker-compose.vps.yml`. Their configuration lives in `ops/monitoring/` (scrape targets, dashboards, datasources) and must be run as a separate monitoring stack. The api-gateway exposes a `/metrics` Prometheus endpoint.
 
 **Suricata does not run on the VPS.** The Pi is the inline sensor; its eve.json is forwarded to the VPS by raspi-collector. The VPS analyses those events and generates rules sent back to the Pi.
 
@@ -197,7 +197,6 @@ All requests from raspi-collector to the VPS carry `X-API-Key: <API_KEY>` header
    → future packets from that IP are dropped in step 3 without VPS round-trip
 ```
 
-> packet-processor and rule-engine are code-complete but not yet added to docker-compose.raspi.yml. See TODO.md item 3.
 
 ---
 

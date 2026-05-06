@@ -16,9 +16,12 @@ Everything lives in [`docs/`](docs/). Start with the setup guide, then dive deep
 | [docs/PI_BRIDGE_SETUP.md](docs/PI_BRIDGE_SETUP.md) | One-time bridge + WireGuard pairing for the Pi |
 | [docs/BACKLOG.md](docs/BACKLOG.md) | Implementation status and remaining work |
 | [docs/TODO.md](docs/TODO.md) | Current short-term tasks |
-| [docs/archive/v1-Eindwerk](docs/archive/v1-Eindwerk) | Legacy thesis materials (kept for reference) |
 
 See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for a tour of the trimmed repository layout.
+
+## AI assistance
+
+Parts of this codebase were developed with the help of AI (Claude by Anthropic). AI assisted with writing Rust service boilerplate, Angular components, configuration files, and documentation. All code was reviewed, tested, and integrated by the author.
 
 ## Quick start
 
