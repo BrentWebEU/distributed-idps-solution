@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(git -C /Users/brentschoenmakers/Web/idps log --all --oneline -- \"src/services/cloud/vulnerability-scanner\")",
+      "Bash(git -C /Users/brentschoenmakers/Web/idps show afdce85:src/services/cloud/vulnerability-scanner/Cargo.toml)",
+      "Bash(git -C /Users/brentschoenmakers/Web/idps log --all --diff-filter=D --summary -- \"src/services/cloud/vulnerability-scanner\")",
+      "Bash(git -C /Users/brentschoenmakers/Web/idps status --short)",
+      "Bash(docker compose *)",
+      "Bash(bash -n /Users/brentschoenmakers/Web/idps/scripts/idps-manager.sh)",
+      "Bash(git *)",
+      "Bash(xargs ls *)",
+      "Bash(grep \"\\\\.css$\")",
+      "Bash(chmod +x *)",
+      "Bash(cargo build *)",
+      "Bash(cargo check *)",
+      "Bash(npx ng *)",
+      "Bash(npm install *)",
+      "Bash(grep -n \"fn.*{.*}[[:space:]]*$\\\\|^\\\\s*{}\\\\s*$\" /Users/brentschoenmakers/Web/idps/src/services/edge/network-filter/src/lib.rs)"
+    ]
+  }
+}
